@@ -585,7 +585,6 @@ export default class Xo extends EventEmitter {
   }
 
   async updateRemote (id, {name, url, enabled, error}) {
-    console.log('XXX', id, name, url, enabled, error)
     const remote = await this._getRemote(id)
     this._updateRemote(remote, {name, url, enabled, error})
     const props = await this.remoteHandler.sync(this._developRemote(remote.properties))

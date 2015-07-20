@@ -37,7 +37,7 @@ export default class JobExecutor {
     }
   }
 
-  _execCall (userId, method, paramsVector) {
+  async _execCall (userId, method, paramsVector) {
     let paramsFlatVector
     if (paramsVector.type === 'crossProduct') {
       paramsFlatVector = this._computeCrossProduct(paramsVector.items, productParams, this._extractValueCb)
@@ -47,9 +47,26 @@ export default class JobExecutor {
     const connection = this.xo.createUserConnection()
     connection.set('user_id', userId)
     forEach(paramsFlatVector, params => {
-      this.api.call(connection, method, assign({}, params))
+      const _params = assign({}, params)
+      forEach(_params, async (value, key) => {
+        _params[key] = this._r(value, connection)
+      })
+      this.api.call(connection, method, _params)
     })
     connection.close()
+  }
+
+  async _r (value, _c) {
+    if (value && value.$dynamic) {
+      const {$dynMethod, $dynParams, $dynProperty} = value
+      if ($dynMethod) {
+        value = await this.api.call(_c, this._r($dynMethod, _c), this._r($dynParams, _c) || {})
+      }
+      if ($dynProperty) {
+        value = value[this._r($dynProperty, _c)]
+      }
+    }
+    return value
   }
 
   _computeCrossProduct (items, productCb, extractValueMap = {}) {
