@@ -635,6 +635,37 @@ export default class Xapi extends XapiBase {
     }
   }
 
+  async _getHostToSrPbd (host, sr) {
+    const pbd = find(host.$PBDs, { SR: sr.$ref })
+    if (pbd) {
+      return
+    }
+
+    const template = sr.$PBDs[0]
+    if (!template) {
+      throw new JsonRpcError('no existing PBD can be used as a template')
+    }
+
+    return await this.call({
+      device_config: template.device_config,
+      host: host.$ref,
+      SR: sr.$ref
+    })
+  }
+
+  async connectHostToSr (hostId, srId) {
+    const host = this.getObject(hostId)
+    const sr = this.getObject(srId)
+
+    const pbd = await this._getHostToSrPbd(host, sr)
+    if (pbd.correctly_attached) {
+      throw new JsonRpcError('host already connected to SR', {
+        host: host.$id,
+        sr: sr.$id
+      })
+    }
+  }
+
   async emergencyShutdownHost (hostId) {
     const host = this.getObject(hostId)
     const vms = host.$resident_VMs

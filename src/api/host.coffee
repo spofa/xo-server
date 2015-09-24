@@ -171,6 +171,23 @@ exports.disable = disable
 
 #---------------------------------------------------------------------
 
+connectSr = ({host, sr}) ->
+  return @getXAPI(host).connectHostToSr(host.id, sr.id)
+
+connectSr.description = 'connect a SR to this host'
+
+connectSr.params = {
+  id: { type: 'string' }
+  srId: { type: 'string' }
+}
+
+connectSr.resolve = {
+  host: ['id', 'host', 'administrate']
+  sr: ['id', 'SR', 'administrate']
+}
+
+#---------------------------------------------------------------------
+
 # TODO: to test and to fix.
 createNetwork = $coroutine ({host, name, description, pif, mtu, vlan}) ->
   xapi = @getXAPI host
