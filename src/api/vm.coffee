@@ -320,6 +320,14 @@ set = $coroutine (params) ->
     else
       yield xapi.call 'VM.remove_from_other_config', ref, 'auto_poweron'
 
+  if 'vga' of params
+    {vga} = params
+    yield xapi.call 'VM.set_platform', ref, {vga}
+
+  if 'videoram' of params
+    {videoram} = params
+    yield xapi.call 'VM.set_platform', ref, {videoram}
+
   # Other fields.
   for param, fields of {
     'name_label'
