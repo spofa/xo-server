@@ -17,7 +17,10 @@ import {
   Xapi as XapiBase
 } from 'xen-api'
 
-import {debounce} from './decorators'
+import {
+  cancellable,
+  debounce
+} from './decorators'
 import {
   bufferToStream,
   camelToSnakeCase,
@@ -1129,13 +1132,17 @@ export default class Xapi extends XapiBase {
     )
   }
 
-  async _putWithoutLength (stream, hostname, path, query) {
+  async _putVmWithoutLength (cancellation, hostname, stream, path, query) {
     const request = httpRequest({
       hostname,
       method: 'PUT',
       path: `${path}?${formatQueryString(query)}`
     })
     request.removeHeader('transfer-encoding')
+
+    cancellation.then(() => {
+      request.abort()
+    })
 
     stream.pipe(request)
 
@@ -1152,7 +1159,26 @@ export default class Xapi extends XapiBase {
     request.abort()
   }
 
-  async _importVm (stream, length, sr, onlyMetadata = false, onVmCreation = undefined) {
+  async _putVmWithLength (cancellation, hostname, stream, query, length) {
+    const responseStream = got.stream.put({
+      hostname,
+      path: '/import/'
+    }, {
+      body: stream,
+      headers: { 'content-length': length },
+      query
+    })
+
+    const request = await eventToPromise(responseStream, 'request')
+    cancellation.then(() => {
+      request.abort()
+    })
+
+    responseStream.resume()
+    await eventToPromise(responseStream, 'end')
+  }
+
+  async _importVm (cancellation, stream, length, sr, onlyMetadata = false, onVmCreation = undefined) {
     const taskRef = await this._createTask('VM import')
     const query = {
       force: onlyMetadata
@@ -1170,18 +1196,17 @@ export default class Xapi extends XapiBase {
       host = this.pool.$master
     }
 
+    cancellation.then(() => {
+      this.call('task.cancel', taskRef).then(() => {
+        debug('task cancelled')
+      })
+    })
+
     const path = onlyMetadata ? '/import_metadata/' : '/import/'
 
     const upload = length
-      ? got.put({
-        hostname: host.address,
-        path
-      }, {
-        body: stream,
-        headers: { 'content-length': length },
-        query
-      })
-      : this._putWithoutLength(stream, host.address, path, query)
+      ? this._putVmWithLength(cancellation, host.address, stream, query, length)
+      : this._putVmWithoutLength(cancellation, host.address, stream, path, query)
 
     if (onVmCreation) {
       this._waitObject(
@@ -1206,11 +1231,13 @@ export default class Xapi extends XapiBase {
   }
 
   // TODO: an XVA can contain multiple VMs
-  async importVm (stream, length, {
+  @cancellable
+  async importVm (cancellation, stream, length, {
     onlyMetadata = false,
     srId
   } = {}) {
     return await this._getOrWaitObject(await this._importVm(
+      cancellation,
       stream,
       length,
       srId && this.getObject(srId),
