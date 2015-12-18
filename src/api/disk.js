@@ -86,7 +86,7 @@ exports.export = export_
 
 // -------------------------------------------------------------------
 
-async function handleImportContent (req, res, { xapi, vdi }) {
+async function handleImportContent (req, res, { xapi, vdi, format: type }) {
   // Timeout seems to be broken in Node 4.
   // See https://github.com/nodejs/node/issues/3319
   req.setTimeout(43200000) // 12 hours
@@ -98,8 +98,12 @@ async function handleImportContent (req, res, { xapi, vdi }) {
     res.end('Content length is mandatory')
   }
 
+  if (!type) {
+    type = 'raw'
+  }
+
   try {
-    await xapi.importVdiContent(vdi._xapiId, req, { length: contentLength, format: 'vhd' })
+    await xapi.importVdiContent(vdi._xapiId, req, { length: contentLength, format: type })
     res.end(format.response(0, true))
   } catch (e) {
     res.writeHead(500)
@@ -107,18 +111,19 @@ async function handleImportContent (req, res, { xapi, vdi }) {
   }
 }
 
-export async function importContent ({vdi}) {
+export async function importContent ({vdi, format}) {
   const xapi = this.getXAPI(vdi)
 
   return {
-    $sendTo: await this.registerHttpRequest(handleImportContent, { xapi, vdi })
+    $sendTo: await this.registerHttpRequest(handleImportContent, { xapi, vdi, format })
   }
 }
 
 importContent.description = 'Imports a Disk from a file system to an existing virtual disk'
 
 importContent.params = {
-  vdi: { type: 'string' }
+  vdi: { type: 'string' },
+  format: { type: 'string', optional: true }
 }
 
 importContent.resolve = {
