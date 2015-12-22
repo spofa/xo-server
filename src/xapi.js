@@ -17,7 +17,10 @@ import {
   Xapi as XapiBase
 } from 'xen-api'
 
-import {debounce} from './decorators'
+import {
+  debounce,
+  deferrable
+} from './decorators'
 import {
   bufferToStream,
   camelToSnakeCase,
@@ -834,8 +837,8 @@ export default class Xapi extends XapiBase {
     return vm
   }
 
-  // TODO: clean up on error.
-  async createVm (templateId, {
+  @deferrable
+  async createVm (defer, templateId, {
     nameDescription = undefined,
     nameLabel = undefined,
     pvArgs = undefined,
@@ -863,6 +866,7 @@ export default class Xapi extends XapiBase {
     const vm = await this._getOrWaitObject(
       await this._cloneVm(template, nameLabel)
     )
+    defer(() => this._deleteVm(vm))
 
     // TODO: copy BIOS strings?
 
@@ -982,6 +986,8 @@ export default class Xapi extends XapiBase {
         }
       )))
     }
+
+    defer.clear()
 
     // TODO: Assign VGPUs.
 
