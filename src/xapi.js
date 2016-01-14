@@ -33,7 +33,8 @@ import {
   parseXml,
   pFinally,
   promisifyAll,
-  pSettle
+  pSettle,
+  pDebug
 } from './utils'
 import {
   JsonRpcError,
@@ -1170,9 +1171,19 @@ export default class Xapi extends XapiBase {
     })
 
     const request = await eventToPromise(responseStream, 'request')
+    request.on('end', () => console.log('Request end'))
+    request.on('close', () => console.log('Request close'))
+    request.on('error', () => console.log('Request error'))
+    request.on('abort', () => console.log('Request aborted'))
+    request.socket.on('end', () => console.log('Socket end'))
+    request.socket.on('close', () => console.log('Socket close'))
+    request.socket.on('error', () => console.log('Socket error'))
+    request.socket.on('abort', () => console.log('Request abort'))
     cancellation.then(() => {
+      request.socket.destroy()
+      request.end()
       request.abort()
-    })
+    }).catch(::console.error)
 
     responseStream.resume()
     await eventToPromise(responseStream, 'end')
@@ -1198,9 +1209,9 @@ export default class Xapi extends XapiBase {
 
     cancellation.then(() => {
       this.call('task.cancel', taskRef).then(() => {
-        debug('task cancelled')
+        console.log('Cancellation ok')
       })
-    })
+    })::pDebug('task.cancel')
 
     const path = onlyMetadata ? '/import_metadata/' : '/import/'
 
