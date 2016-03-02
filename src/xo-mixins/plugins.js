@@ -101,6 +101,7 @@ export default class {
   async _getPlugin (id) {
     const {
       configurationSchema,
+      instance,
       loaded,
       name,
       unloadable
@@ -111,13 +112,14 @@ export default class {
     } = (await this._getPluginMetadata(id)) || {}
 
     return {
-      id,
-      name,
       autoload,
-      loaded,
-      unloadable,
       configuration,
-      configurationSchema
+      configurationSchema,
+      id,
+      instance,
+      loaded,
+      name,
+      unloadable
     }
   }
 
