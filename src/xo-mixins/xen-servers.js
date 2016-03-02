@@ -119,6 +119,8 @@ export default class {
     const objects = this._xo._objects
 
     forEach(xapiObjects, (xapiObject, xapiId) => {
+      console.log('+ %s (%s)', xapiObject.$id, xapiObject.$type)
+
       try {
         const xoObject = xapiObjectToXo(xapiObject)
         if (!xoObject) {
@@ -153,6 +155,8 @@ export default class {
     const objects = this._xo._objects
 
     forEach(xapiObjects, (_, xapiId) => {
+      console.log('- %s', xapiId)
+
       toRetry && delete toRetry[xapiId]
 
       const xoId = xapiIdsToXo[xapiId]
