@@ -468,7 +468,7 @@ export default class {
     // Check backup dirs.
     const dir = `vm_delta_${tag}_${vm.uuid}`
     const fullVdisRequired = []
-
+    const this_ = this // Work around http://phabricator.babeljs.io/T7172
     await Promise.all(
       mapToArray(vm.$VBDs, async vbd => {
         if (!vbd.VDI || vbd.type !== 'Disk') {
@@ -476,7 +476,7 @@ export default class {
         }
 
         const vdi = vbd.$VDI
-        const backups = await this._listVdiBackups(handler, `${dir}/vdi_${vdi.uuid}`)
+        const backups = await this_._listVdiBackups(handler, `${dir}/vdi_${vdi.uuid}`)
 
         // Force full if missing full.
         if (!find(backups, isFullVdiBackup)) {
@@ -500,13 +500,12 @@ export default class {
 
       await xapi.deleteVm(delta.vm.$id, true)
     })
-
     // Save vdis.
     const vdiBackups = await pSettle(
       mapToArray(delta.vdis, async (vdi, key) => {
         const vdiParent = xapi.getObject(vdi.snapshot_of)
 
-        return this._saveDeltaVdiBackup(xapi, {
+        return this_._saveDeltaVdiBackup(xapi, {
           vdiParent,
           isFull: find(fullVdisRequired, id => vdiParent.$id === id),
           handler,

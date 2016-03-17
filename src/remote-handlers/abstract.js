@@ -87,11 +87,12 @@ export default class RemoteHandlerAbstract {
     ignoreMissingChecksum = false,
     ...options
   } = {}) {
+    const this_ = this // Work around http://phabricator.babeljs.io/T7172
     const streamP = this._createReadStream(file, options).then(async stream => {
       await eventToPromise(stream, 'readable')
 
       if (stream.length === undefined) {
-        stream.length = await this.getSize(file)::pCatch(noop)
+        stream.length = await this_.getSize(file)::pCatch(noop)
       }
 
       return stream
