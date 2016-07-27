@@ -478,3 +478,12 @@ export const scheduleFn = (cronTime, fn, timeZone) => {
 
 // Wrap a value in a function.
 export const wrap = value => () => value
+
+// -------------------------------------------------------------------
+
+// Create an array which contains the results of one thunk function.
+export const thunkToArray = thunk => {
+  const values = []
+  thunk(::values.push)
+  return values
+}

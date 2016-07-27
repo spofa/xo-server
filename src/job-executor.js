@@ -1,9 +1,13 @@
 import assign from 'lodash/assign'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
-import {BaseError} from 'make-error'
+import { BaseError } from 'make-error'
 
-import { forEach } from './utils'
+import { crossProduct } from './math'
+import {
+  forEach,
+  thunkToArray
+} from './utils'
 
 export class JobExecutorError extends BaseError {}
 export class UnsupportedJobType extends JobExecutorError {
@@ -19,66 +23,13 @@ export class UnsupportedVectorType extends JobExecutorError {
 
 // ===================================================================
 
-const _combine = (vectors, n, cb) => {
-  if (!n) {
-    return
-  }
-
-  const nLast = n - 1
-
-  const vector = vectors[nLast]
-  const m = vector.length
-  if (n === 1) {
-    for (let i = 0; i < m; ++i) {
-      cb([ vector[i] ])
-    }
-    return
-  }
-
-  for (let i = 0; i < m; ++i) {
-    const value = vector[i]
-
-    _combine(vectors, nLast, (vector) => {
-      vector.push(value)
-      cb(vector)
-    })
-  }
-}
-const combine = vectors => cb => _combine(vectors, vectors.length, cb)
-
-export const vectorToObject = vector => {
-  const obj = {}
-  const n = vector.length
-  for (let i = 0; i < n; ++i) {
-    assign(obj, vector[i])
-  }
-
-  return obj
-}
-
-export const crossProduct = vectors => cb => combine(vectors)(vector => {
-  cb(vectorToObject(vector))
-})
-
-// ===================================================================
-
-export const thunkToArray = thunk => {
-  const values = []
-  thunk(::values.push)
-  return values
-}
-
-// ===================================================================
-
-const getNodeValues = node => node.values || node.items
-
 const paramsVectorActionsMap = {
   extractProperties ({ pattern, value }) {
     return map(pattern, key => value[key])
   },
-  crossProduct (node) {
+  crossProduct ({ items }) {
     return thunkToArray(crossProduct(
-      map(getNodeValues(node), value => resolveParamsVector.call(this, value))
+      map(items, value => resolveParamsVector.call(this, value))
     ))
   },
   fetchObjects (node) {
@@ -89,7 +40,7 @@ const paramsVectorActionsMap = {
       resolveParamsVector.call(this, { type: iteratee, ...iterateeArgs, value })
     )
   },
-  set: getNodeValues
+  set: ({ values }) => values
 }
 
 function resolveParamsVector (paramsVector) {
