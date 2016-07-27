@@ -4,11 +4,12 @@ import {expect} from 'chai'
 import leche from 'leche'
 
 import {
-  _computeCrossProduct,
-  productParams
+  crossProduct,
+  thunkToArray,
+  vectorToObject
 } from './job-executor'
 
-describe('productParams', function () {
+describe('vectorToObject', function () {
   leche.withData({
     'Two sets of one': [
       {a: 1, b: 2}, {a: 1}, {b: 2}
@@ -33,39 +34,68 @@ describe('productParams', function () {
     ]
   }, function (resultSet, ...sets) {
     it('Assembles all given param sets in on set', function () {
-      expect(productParams(...sets)).to.eql(resultSet)
+      expect(vectorToObject(sets)).to.eql(resultSet)
     })
   })
 })
 
-describe('_computeCrossProduct', function () {
-  // Gives the sum of all args
-  const addTest = (...args) => args.reduce((prev, curr) => prev + curr, 0)
-  // Gives the product of all args
-  const multiplyTest = (...args) => args.reduce((prev, curr) => prev * curr, 1)
-
+describe('crossProduct', function () {
   leche.withData({
-    '2 sets of 2 items to multiply': [
-      [10, 14, 15, 21], [[2, 3], [5, 7]], multiplyTest
+    '2 sets of 2 items': [
+      // Expected result
+      [ { a: 2, c: 5 }, { b: 3, c: 5 }, { a: 2, d: 7 }, { b: 3, d: 7 } ],
+      // Entries
+      [ { a: 2 }, { b: 3 } ],
+      [ { c: 5 }, { d: 7 } ]
     ],
-    '3 sets of 2 items to multiply': [
-      [110, 130, 154, 182, 165, 195, 231, 273], [[2, 3], [5, 7], [11, 13]], multiplyTest
+    '3 sets of 2 items': [
+      // Expected result
+      [ { a: 2, c: 5, e: 11 },
+        { b: 3, c: 5, e: 11 },
+        { a: 2, d: 7, e: 11 },
+        { b: 3, d: 7, e: 11 },
+        { a: 2, c: 5, f: 13 },
+        { b: 3, c: 5, f: 13 },
+        { a: 2, d: 7, f: 13 },
+        { b: 3, d: 7, f: 13 } ],
+      // Entries
+      [ { a: 2 }, { b: 3 } ],
+      [ { c: 5 }, { d: 7 } ],
+      [ { e: 11 }, { f: 13 } ]
     ],
-    '2 sets of 3 items to multiply': [
-      [14, 22, 26, 21, 33, 39, 35, 55, 65], [[2, 3, 5], [7, 11, 13]], multiplyTest
+    '2 sets of 3 items (1)': [
+      // Expected result
+      [ { a: 7 },
+        { b: 3, a: 7 },
+        { c: 5, a: 7 },
+        { a: 2, d: 11 },
+        { b: 3, d: 11 },
+        { c: 5, d: 11 },
+        { a: 2, e: 13 },
+        { b: 3, e: 13 },
+        { c: 5, e: 13 } ],
+      // Entries
+      [ { a: 2 }, { b: 3 }, { c: 5 } ],
+      [ { a: 7 }, { d: 11 }, { e: 13 } ]
     ],
-    '2 sets of 2 items to add': [
-      [7, 9, 8, 10], [[2, 3], [5, 7]], addTest
-    ],
-    '3 sets of 2 items to add': [
-      [18, 20, 20, 22, 19, 21, 21, 23], [[2, 3], [5, 7], [11, 13]], addTest
-    ],
-    '2 sets of 3 items to add': [
-      [9, 13, 15, 10, 14, 16, 12, 16, 18], [[2, 3, 5], [7, 11, 13]], addTest
+    '2 sets of 3 items (2)': [
+      // Expected result
+      [ { a: 12, b: 3, c: 4 },
+        { a: 12, b: 6, c: 4 },
+        { a: 12, b: 4, c: 4 },
+        { a: 15, b: 3 },
+        { a: 15, b: 3 },
+        { a: 15, b: 3 },
+        { a: 2, b: 3, c: 16 },
+        { a: 5, b: 6, c: 16 },
+        { a: 8, b: 4, c: 16 } ],
+      // Entries
+      [ { a: 2, b: 3 }, { a: 5, b: 6 }, { a: 8, b: 4 } ],
+      [ { a: 12, c: 4 }, { a: 15, b: 3 }, { c: 16 } ]
     ]
-  }, function (product, items, cb) {
+  }, function (product, ...items) {
     it('Crosses sets of values with a crossProduct callback', function () {
-      expect(_computeCrossProduct(items, cb)).to.have.members(product)
+      expect(thunkToArray(crossProduct(items))).to.deep.have.members(product)
     })
   })
 })
