@@ -1,4 +1,3 @@
-
 // FIXME so far, no acls for jobs
 
 export async function getAll () {
