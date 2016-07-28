@@ -1,5 +1,3 @@
-import isPlainObject from 'lodash/isPlainObject'
-import isString from 'lodash/isString'
 
 // FIXME so far, no acls for jobs
 
@@ -30,7 +28,6 @@ create.params = {
   job: {
     type: 'object',
     properties: {
-      id: {type: 'string'},
       name: {type: 'string', optional: true},
       type: {type: 'string'},
       key: {type: 'string'},
@@ -42,23 +39,7 @@ create.params = {
           items: {
             type: 'array',
             items: {
-              type: 'object',
-              exec: function (schema, post) {
-                const { type } = post
-                if (type === 'set') {
-                  if (!Array.isArray(post.values)) {
-                    this.report('values is not an array')
-                  }
-                } else if (type === 'map') {
-                  if (!isString(post.iteratee)) {
-                    this.report('iteratee is not a string')
-                  } else if (!isPlainObject(post.collection)) {
-                    this.report('collection is not an object')
-                  }
-                } else {
-                  this.report('no type defined')
-                }
-              }
+              type: 'object'
             }
           }
         },
@@ -90,23 +71,7 @@ set.params = {
           items: {
             type: 'array',
             items: {
-              type: 'object',
-              exec: function (schema, post) {
-                const { type } = post
-                if (type === 'set') {
-                  if (!Array.isArray(post.values)) {
-                    this.report('values is not an array')
-                  }
-                } else if (type === 'map') {
-                  if (!isString(post.iteratee)) {
-                    this.report('iteratee is not a string')
-                  } else if (!isPlainObject(post.collection)) {
-                    this.report('collection is not an object')
-                  }
-                } else {
-                  this.report('no type defined')
-                }
-              }
+              type: 'object'
             }
           }
         },

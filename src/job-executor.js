@@ -1,8 +1,12 @@
 import assign from 'lodash/assign'
+import every from 'lodash/every'
 import filter from 'lodash/filter'
-import includes from 'lodash/includes'
+import isArray from 'lodash/isArray'
+import isPlainObject from 'lodash/isPlainObject'
 import map from 'lodash/map'
 import mapValues from 'lodash/mapValues'
+import size from 'lodash/size'
+import some from 'lodash/some'
 import { BaseError } from 'make-error'
 
 import { crossProduct } from './math'
@@ -25,6 +29,26 @@ export class UnsupportedVectorType extends JobExecutorError {
 
 // ===================================================================
 
+const match = (pattern, value) => {
+  if (isPlainObject(pattern)) {
+    if (pattern.__or && size(pattern) === 1) {
+      return some(pattern.__or, subpattern => match(subpattern, value))
+    }
+
+    return isPlainObject(value) && every(pattern, (subpattern, key) => (
+      value[key] !== undefined && match(subpattern, value[key])
+    ))
+  }
+
+  if (isArray(pattern)) {
+    return isArray(value) && every(pattern, subpattern =>
+      some(value, subvalue => match(subpattern, subvalue))
+    )
+  }
+
+  return pattern === value
+}
+
 const paramsVectorActionsMap = {
   extractProperties ({ pattern, value }) {
     return mapValues(pattern, key => value[key])
@@ -36,51 +60,7 @@ const paramsVectorActionsMap = {
   },
   fetchObjects (node) {
     const { pattern } = node
-
-    const predicate = object => {
-      for (const key in pattern) {
-        const value = pattern[key]
-        const objectValue = object[key]
-
-        if (!Array.isArray(value)) {
-          // Value is a scalar & objectValue too.
-          if (!Array.isArray(objectValue)) {
-            if (value !== objectValue) {
-              return false
-            }
-          } else {
-            // Value is a scalar & objectValue an array.
-            if (!includes(objectValue, value)) {
-              return false
-            }
-          }
-        } else {
-          if (!Array.isArray(objectValue)) {
-            // Value is an array & not objectValue.
-            if (!includes(value, objectValue)) {
-              return false
-            }
-          } else {
-            // Value is an array & objectValue too.
-            let exists = false
-            for (const elem of objectValue) {
-              if (includes(value, elem)) {
-                exists = true
-                break
-              }
-            }
-
-            if (!exists) {
-              return false
-            }
-          }
-        }
-      }
-
-      return true
-    }
-
-    return filter(this.xo.getObjects(), predicate)
+    return filter(this.xo.getObjects(), object => match(pattern, object))
   },
   map ({ collection, iteratee, iterateeArgs }) {
     return map(resolveParamsVector.call(this, collection), value =>
