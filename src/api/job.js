@@ -1,3 +1,6 @@
+import isPlainObject from 'lodash/isPlainObject'
+import isString from 'lodash/isString'
+
 // FIXME so far, no acls for jobs
 
 export async function getAll () {
@@ -27,6 +30,7 @@ create.params = {
   job: {
     type: 'object',
     properties: {
+      id: {type: 'string'},
       name: {type: 'string', optional: true},
       type: {type: 'string'},
       key: {type: 'string'},
@@ -39,11 +43,20 @@ create.params = {
             type: 'array',
             items: {
               type: 'object',
-              properties: {
-                type: {type: 'string'},
-                values: {
-                  type: 'array',
-                  items: {type: 'object'}
+              exec: function (schema, post) {
+                const { type } = post
+                if (type === 'set') {
+                  if (!Array.isArray(post.values)) {
+                    this.report('values is not an array')
+                  }
+                } else if (type === 'map') {
+                  if (!isString(post.iteratee)) {
+                    this.report('iteratee is not a string')
+                  } else if (!isPlainObject(post.collection)) {
+                    this.report('collection is not an object')
+                  }
+                } else {
+                  this.report('no type defined')
                 }
               }
             }
@@ -78,11 +91,20 @@ set.params = {
             type: 'array',
             items: {
               type: 'object',
-              properties: {
-                type: {type: 'string'},
-                values: {
-                  type: 'array',
-                  items: {type: 'object'}
+              exec: function (schema, post) {
+                const { type } = post
+                if (type === 'set') {
+                  if (!Array.isArray(post.values)) {
+                    this.report('values is not an array')
+                  }
+                } else if (type === 'map') {
+                  if (!isString(post.iteratee)) {
+                    this.report('iteratee is not a string')
+                  } else if (!isPlainObject(post.collection)) {
+                    this.report('collection is not an object')
+                  }
+                } else {
+                  this.report('no type defined')
                 }
               }
             }

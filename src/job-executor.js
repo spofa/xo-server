@@ -1,6 +1,8 @@
 import assign from 'lodash/assign'
 import filter from 'lodash/filter'
+import includes from 'lodash/includes'
 import map from 'lodash/map'
+import mapValues from 'lodash/mapValues'
 import { BaseError } from 'make-error'
 
 import { crossProduct } from './math'
@@ -25,7 +27,7 @@ export class UnsupportedVectorType extends JobExecutorError {
 
 const paramsVectorActionsMap = {
   extractProperties ({ pattern, value }) {
-    return map(pattern, key => value[key])
+    return mapValues(pattern, key => value[key])
   },
   crossProduct ({ items }) {
     return thunkToArray(crossProduct(
@@ -33,7 +35,52 @@ const paramsVectorActionsMap = {
     ))
   },
   fetchObjects (node) {
-    return filter(this.xo.getObjects(), node.filter)
+    const { pattern } = node
+
+    const predicate = object => {
+      for (const key in pattern) {
+        const value = pattern[key]
+        const objectValue = object[key]
+
+        if (!Array.isArray(value)) {
+          // Value is a scalar & objectValue too.
+          if (!Array.isArray(objectValue)) {
+            if (value !== objectValue) {
+              return false
+            }
+          } else {
+            // Value is a scalar & objectValue an array.
+            if (!includes(objectValue, value)) {
+              return false
+            }
+          }
+        } else {
+          if (!Array.isArray(objectValue)) {
+            // Value is an array & not objectValue.
+            if (!includes(value, objectValue)) {
+              return false
+            }
+          } else {
+            // Value is an array & objectValue too.
+            let exists = false
+            for (const elem of objectValue) {
+              if (includes(value, elem)) {
+                exists = true
+                break
+              }
+            }
+
+            if (!exists) {
+              return false
+            }
+          }
+        }
+      }
+
+      return true
+    }
+
+    return filter(this.xo.getObjects(), predicate)
   },
   map ({ collection, iteratee, iterateeArgs }) {
     return map(resolveParamsVector.call(this, collection), value =>
